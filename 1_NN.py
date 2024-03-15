@@ -35,15 +35,15 @@ def evaluate_model_metrics(model, test_loader):#指标计算函数
             outputs = model(images)
             predicted = outputs.argmax(1)
             for i in range (len(predicted)):
-                label=labels[i]-1
-                predict=predicted[i]-1
+                label=labels[i]
+                predict=predicted[i]
                 if label==predict:
                     TP[label]+=1
                     for j in range (10):
                         if j==label:
                             continue
                         TN[j]+=1
-                if label!=predict:
+                else :
                     FN[label]+=1
                     FP[predict]+=1
                     for j in range(10):
@@ -52,15 +52,15 @@ def evaluate_model_metrics(model, test_loader):#指标计算函数
                         TN[j]+=1
             if (i+1) % 100 == 0:
                 print(f'Step [{i+1}/{len(test_loader)}]')
-    TP_average=np.mean(TP)
-    TN_average=np.mean(TN)
-    FP_average=np.mean(FP)
-    FN_average=np.mean(FN)
-    print('TP',TP_average,'TN',TN_average,'FP',FP_average,'FN',FN_average)
-    accuracy = (TP_average + TN_average) / (TP_average + TN_average + FP_average + FN_average)
-    precision = TP_average / (TP_average + FP_average) if (TP_average + FP_average) != 0 else 0
-    recall = TP_average / (TP_average + FN_average) if (TP_average + FN_average) != 0 else 0
-    f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) != 0 else 0
+    accuracy=[0 for i in range (10)]
+    precision=[0 for i in range (10)]
+    recall=[0 for i in range (10)]
+    f1_score=[0 for i in range (10)]
+    for i in range (10):
+        accuracy[i]=(TP[i] + TN[i]) / (TP[i] + TN[i] + FP[i] + FN[i])
+        precision[i] = TP[i] / (TP[i] + FP[i]) if (TP[i] + FP[i]) != 0 else 0
+        recall[i] = TP[i] / (TP[i]+ FN[i]) if (TP[i]+ FN[i]) != 0 else 0
+        f1_score[i] = 2 * precision[i] * recall[i] / (precision[i] + recall[i]) if (precision[i] + recall[i]) != 0 else 0
     
     return accuracy, precision, recall, f1_score
 
@@ -70,17 +70,17 @@ transform = transforms.Compose([
     transforms.Normalize((0.1307,), (0.3081,))
 ])
 
-train_dataset = datasets.ImageFolder(root='D:\\2024dianAi\\mnist\\mnist_train', transform=transform)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
-test_dataset = datasets.ImageFolder(root='D:\\2024dianAi\\mnist\\mnist_test', transform=transform)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=64, shuffle=True)
+train_dataset = datasets.ImageFolder(root='.\\mnist\\mnist_train', transform=transform)
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=128, shuffle=True)
+test_dataset = datasets.ImageFolder(root='.\\mnist\\mnist_test', transform=transform)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=128, shuffle=True)
 model = NN(input_size=28*28, hidden_size1=128, hidden_size2=256, num_classes=10)
 
 # 定义损失函数和优化器
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-num_epochs=1
+num_epochs=3
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
         images = images
@@ -100,7 +100,9 @@ for epoch in range(num_epochs):
 print('Training Finished')
 
 accuracy, precision, recall, f1_score = evaluate_model_metrics(model, test_loader)
-print(f'Accuracy: {accuracy:.4f}')
-print(f'Precision: {precision:.4f}')
-print(f'Recall: {recall:.4f}')
-print(f'F1 Score: {f1_score:.4f}')
+for i in range (10):
+    print(i,':')
+    print(f'Accuracy: {accuracy[i]:.4f}')
+    print(f'Precision: {precision[i]:.4f}')
+    print(f'Recall: {recall[i]:.4f}')
+    print(f'F1 Score: {f1_score[i]:.4f}')
