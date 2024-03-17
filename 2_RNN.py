@@ -9,8 +9,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.flatten = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(28*28*3,input_size)
+            nn.Flatten(2,-1),
         )
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
         self.i2o = nn.Linear(input_size + hidden_size, output_size)
@@ -18,22 +17,28 @@ class RNN(nn.Module):
 
     def forward(self, input, hidden):
         input = self.flatten(input)
-        combined = torch.cat((input, hidden), 1)
-        hidden_output = self.i2h(combined)
-        output = self.i2o(combined)
-        output = self.softmax(output)
-        return output, hidden_output
-
-    def initHidden(self,x):
-        return torch.zeros(x, self.hidden_size)
+        # 遍历输入序列的每个时间步
+        for i in range(input.shape[1]):
+            # 获取当前时间步的输入
+            input_step = input[:,i,:]
+            # 将输入与隐藏状态连接
+            combined = torch.cat((input_step, hidden), 1)
+            # 更新隐藏状态
+            hidden = torch.relu(self.i2h(combined))
+            # 计算输出
+            output = self.i2o(combined)
+            output = self.softmax(output)
+        return output, hidden
+    
+    def initHidden(self,batch_size):
+        return torch.zeros(batch_size, self.hidden_size)
     
 # 定义训练函数
 def train(model, criterion, optimizer, data):
     model.train()
-    total_loss = 0
     for i,(images, labels) in enumerate(data):
         hidden = model.initHidden(images.shape[0])
-        optimizer.zero_grad()
+        
         loss = 0
         # print(images.shape,images[0].shape,images[0].view(1, -1),images.size(0))
         output, hidden = model(images, hidden)
@@ -41,7 +46,7 @@ def train(model, criterion, optimizer, data):
 
         loss.backward()
         optimizer.step()
-        total_loss += loss.item()
+        optimizer.zero_grad()
         if (i+1) % 100 == 0:
             print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}')
     
